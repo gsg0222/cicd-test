@@ -11,6 +11,7 @@ permissions:
   contents: read
 
 env:
+  # これもSecretの方が良さそうなので後で移動
   ECR_REGISTRY: 581910837730.dkr.ecr.ap-northeast-1.amazonaws.com # ECRレジストリURL
   ECR_REPOSITORY: sample-container # ECRリポジトリ名
 
@@ -43,7 +44,9 @@ jobs:
         with:
           context: "{{defaultContext}}:nginx"
           push: true
-          tags: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+          # 暫定対応、毎回latestを作るのはよろしくないが、yamlにshaを渡す方法がわからない
+          # tags: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+          tags: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
 
@@ -54,15 +57,14 @@ jobs:
 
   deploy:
     needs: build
-    # kubectlとaws-cliは"ubuntu-latest"に含まれるので、バージョン指定の必要がなければ、installやsetupもいらない。
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      # AWSにCI用のIAMユーザを作りその認証情報をSecretsに設定しておく。そして、AWS公式の認証用Actionの引数に渡す。
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-region: ap-northeast-1
+          # ロールにIDプロバイダの設定が必須
           role-to-assume: ${{ secrets.AWS_ASSUME_ROLE_ARN }}
           role-duration-seconds: 1200
       - name: Configure EKS
@@ -71,5 +73,5 @@ jobs:
           aws eks update-kubeconfig --name test
       - name: Deploy to EKS
         run: |
-          # サンプルなのでget pod。実際はkubectl applyなりhelm upgradeなりを呼ぶ。
-          kubectl get pod
+          kubectl apply -f ./yaml/sample-container.yaml
+          kubectl apply -f ./yaml/service.yaml
