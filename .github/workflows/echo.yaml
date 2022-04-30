@@ -51,3 +51,24 @@ jobs:
         run: |
           rm -rf /tmp/.buildx-cache
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+  deploy:
+    # kubectlとaws-cliは"ubuntu-latest"に含まれるので、バージョン指定の必要がなければ、installやsetupもいらない。
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      # AWSにCI用のIAMユーザを作りその認証情報をSecretsに設定しておく。そして、AWS公式の認証用Actionの引数に渡す。
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-1
+      - name: Configure EKS
+        run: |
+          # eksの認証情報を更新する。このコマンドを呼べばkubeconfigの内容をSecretに設定することは不要。
+          aws eks update-kubeconfig --name test
+      - name: Deploy to EKS
+        run: |
+          # サンプルなのでget pod。実際はkubectl applyなりhelm upgradeなりを呼ぶ。
+          kubectl get pod
