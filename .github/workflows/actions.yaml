@@ -74,6 +74,6 @@ jobs:
         # もっといい方法もありそうだが、調べきれず
         run: |
           mkdir ./tmp
-          sed -e 's/<IMAGE>/${{ secrets.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}/g' ./yaml/sample-container.yaml > ./tmp/sample-container.yaml
+          sed -e 's/<IMAGE>/${{ secrets.ECR_REGISTRY }}\/${{ env.ECR_REPOSITORY }}:${{ github.sha }}/g' ./yaml/sample-container.yaml > ./tmp/sample-container.yaml
           kubectl apply -f ./tmp/sample-container.yaml
           kubectl apply -f ./yaml/service.yaml
