@@ -72,8 +72,6 @@ jobs:
           # eksの認証情報を更新する。このコマンドを呼べばkubeconfigの内容をSecretに設定することは不要。
           aws eks update-kubeconfig --name test
       - name: Deploy to EKS
-        with:
-          SHA: ${{ github.sha }}
         run: |
           kubectl apply -f ./yaml/sample-container.yaml
           kubectl apply -f ./yaml/service.yaml
