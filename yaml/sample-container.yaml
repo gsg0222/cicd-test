@@ -16,6 +16,6 @@ spec:
     spec:
       containers:
       - name: nginx
-        image: 581910837730.dkr.ecr.ap-northeast-1.amazonaws.com/sample-container:${{ github.sha }}
+        image: 581910837730.dkr.ecr.ap-northeast-1.amazonaws.com/sample-container:GITHUB_SHA
         ports:
         - containerPort: 80
