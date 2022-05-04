@@ -64,7 +64,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-region: ap-northeast-1
-          # ロールにIDプロバイダの設定が必須
+          # AWS上での操作として、ロールにIDプロバイダの設定が必須
           role-to-assume: ${{ secrets.AWS_ASSUME_ROLE_ARN }}
           role-duration-seconds: 1200
       - name: Configure EKS
@@ -75,5 +75,6 @@ jobs:
         run: |
           mkdir ./tmp
           sed -e 's/GITHUB_SHA/${{ github.sha }}/g' ./yaml/sample-container.yaml > ./tmp/sample-container.yaml
+          export SHA=${{ github.sha }}
           kubectl apply -f ./tmp/sample-container.yaml
           kubectl apply -f ./yaml/service.yaml
