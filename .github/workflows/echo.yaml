@@ -46,7 +46,7 @@ jobs:
           context: "{{defaultContext}}:nginx"
           push: true
           # 暫定対応、毎回latestを作るのはよろしくないが、yamlにshaを渡す方法がわからない
-          tags: ${{ secret.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+          tags: ${{ secrets.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
           # tags: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
