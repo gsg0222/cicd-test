@@ -74,7 +74,6 @@ jobs:
       - name: Deploy to EKS
         run: |
           mkdir ./tmp
-          sed -e 's/GITHUB_SHA/${{ github.sha }}/g' ./yaml/sample-container.yaml > ./tmp/sample-container.yaml
-          export SHA=${{ github.sha }}
+          sed -e 's/<SHA>/${{ github.sha }}/g' ./yaml/sample-container.yaml > ./tmp/sample-container.yaml
           kubectl apply -f ./tmp/sample-container.yaml
           kubectl apply -f ./yaml/service.yaml
