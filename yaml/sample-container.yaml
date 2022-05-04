@@ -16,6 +16,6 @@ spec:
     spec:
       containers:
       - name: nginx
-        image: 581910837730.dkr.ecr.ap-northeast-1.amazonaws.com/sample-container:latest
+        image: 581910837730.dkr.ecr.ap-northeast-1.amazonaws.com/sample-container:${{ SHA }}
         ports:
         - containerPort: 80
