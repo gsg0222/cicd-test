@@ -1,79 +1,76 @@
 name: Action Sample
 
+# このActionsが動くのは、masterブランチにpushされたとき
 on:
   push:
     branches: 
       - master
+  # 手動でActionsを実行可能に
   workflow_dispatch:
 
+# role-to-assumeを使ったAWSの認証をするのに必要らしい
 permissions:
   id-token: write
   contents: read
 
+# 変数定義
 env:
-  # これもSecretの方が良さそうなので後で移動
-  # ECR_REGISTRY: 581910837730.dkr.ecr.ap-northeast-1.amazonaws.com # ECRレジストリURL
-  ECR_REPOSITORY: sample-container # ECRリポジトリ名
+  # ECRリポジトリ名
+  ECR_REPOSITORY: sample-container
 
 jobs:
+  # Dockerイメージの作成とリポジトリへのアップロード
   build:
     runs-on: ubuntu-latest
     steps:
+      # リポジトリの内容をこのジョブにclone
       - uses: actions/checkout@v2
 
+      # dockerの設定を初期化
       - uses: docker/setup-buildx-action@v1
 
-      - uses: actions/cache@v2
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-
-
+      # AWSへのログイン設定
       - uses: aws-actions/configure-aws-credentials@v1
-        with:
-          role-to-assume: ${{ secrets.AWS_ASSUME_ROLE_ARN }}
-          # aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          # aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-northeast-1
-
-      - uses: docker/login-action@v1
-        with:
-          registry: ${{ secrets.ECR_REGISTRY }}
-
-      - uses: docker/build-push-action@v2
-        with:
-          context: "{{defaultContext}}:nginx"
-          push: true
-          # 暫定対応、毎回latestを作るのはよろしくないが、yamlにshaを渡す方法がわからない
-          tags: ${{ secrets.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
-          # tags: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
-
-      - name: Move cache
-        run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-region: ap-northeast-1
           # AWS上での操作として、ロールにIDプロバイダの設定が必須
           role-to-assume: ${{ secrets.AWS_ASSUME_ROLE_ARN }}
           role-duration-seconds: 1200
+
+      # dockerの操作対象をECRのリポジトリにする
+      - uses: docker/login-action@v1
+        with:
+          registry: ${{ secrets.ECR_REGISTRY }}
+
+      # Dockerイメージの作成とリポジトリへのPush
+      - uses: docker/build-push-action@v2
+        with:
+          context: "{{defaultContext}}:nginx"
+          push: true
+          # タグにCommitのshaを設定する
+          tags: ${{ secrets.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+
+  # EKSにコンテナをデプロイしてロードバランサを設定
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-region: ap-northeast-1
+          role-to-assume: ${{ secrets.AWS_ASSUME_ROLE_ARN }}
+          role-duration-seconds: 1200
+
       - name: Configure EKS
         # eksの認証情報を更新する。このコマンドを呼べばkubeconfigの内容をSecretに設定することは不要。
         run: |
           aws eks update-kubeconfig --name test
+
       - name: Deploy to EKS
-        # YAMLファイルで指定するimageのタグを無理やりshaに変更
+        # YAMLファイルで指定するimageをsedで無理やりsha付きのイメージ名に変更
         # もっといい方法もありそうだが、調べきれず
         run: |
           mkdir ./tmp
