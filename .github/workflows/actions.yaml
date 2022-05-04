@@ -45,7 +45,7 @@ jobs:
       # Dockerイメージの作成とリポジトリへのPush
       - uses: docker/build-push-action@v2
         with:
-          context: "{{defaultContext}}:nginx"
+          context: ./nginx/Dockerfile
           push: true
           # タグにCommitのshaを設定する
           tags: ${{ secrets.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
